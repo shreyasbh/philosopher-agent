@@ -1,0 +1,28 @@
+# Local CLAUDE with real references (use CLAUDE.md.template as base)
+CLAUDE.md
+
+# Environment / secrets
+.env
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Data (large files, raw recordings)
+data/raw/
+data/transcripts/
+data/translated/
+data/chunks/
+
+# Qdrant local storage
+qdrant_storage/
+.claude/
+.claude/

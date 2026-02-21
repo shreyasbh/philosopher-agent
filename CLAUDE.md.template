@@ -1,0 +1,277 @@
+# TEMPLATE FILE — copy to CLAUDE.md and fill in real references before use
+# Replace [internal document] with the real framework URL
+# Replace "the philosopher" with the philosopher's name where appropriate
+
+# Philosopher Knowledge Engine — Project Context
+
+## Overview
+A RAG-based knowledge engine built around the recorded body of work of a philosopher. The system ingests video/zoom recordings, transcribes them, stores them in a vector database, and generates responses grounded in the philosopher's ideas in response to user queries.
+
+The philosopher's framework is called the **AP Framework** — a contemporary expression of Advaita rooted in ego inquiry. Key concepts have very specific meanings that differ from mainstream usage:
+- **Ego** — a felt assumption, "I am X"; an error, not an entity
+- **Consciousness** — the ego-object structure itself; "dead duality" (NOT pure awareness)
+- **Suffering** — ego's intrinsic condition, not an accident
+- **Liberation** — not a state; unnameable; "to whom?"
+- **Mind** — accumulated and moving content of ego: memory, conditioning, tendencies
+- **Objects** — what ego attaches to for the sake of completion
+
+> CRITICAL: Always use the philosopher's specific definitions above, NOT mainstream or Vedantic definitions, when tagging, retrieving, or generating responses.
+
+Full framework reference: [internal document]
+
+---
+
+## Current Phase: PoC
+
+### PoC Scope (build this first)
+- [ ] Batch ingestion of video/audio recordings
+- [ ] Transcription using faster-whisper
+- [ ] Translation Hindi → English via Google Translate API
+- [ ] LLM-based flagging of unclear segments (does NOT alter content)
+- [ ] Semantic chunking with sliding window overlap
+- [ ] Metadata tagging using AP Framework as reference
+- [ ] Embedding using OpenAI text-embedding-3-small
+- [ ] Storage in Qdrant vector DB (local)
+- [ ] Query translation layer (user vocab → philosopher vocab)
+- [ ] Search orchestrator (retrieve, rank, assemble context)
+- [ ] LLM generation using GPT-4 with AP Framework system prompt
+- [ ] CLI interface for user queries
+
+### Explicitly Deferred (do NOT build yet)
+- Graph DB (Neo4j) for chunk relationships
+- Internet search enrichment
+- LLM judge for response evaluation
+- User feedback loops
+- Human review UI
+- Query federation (multiple parallel query variants)
+- YouTube / external source ingestion
+- Books and essays ingestion
+- Fine-tuning pipeline
+
+---
+
+## Tech Stack
+
+| Component | Technology |
+|---|---|
+| Transcription | faster-whisper (large model) |
+| Translation | Google Translate API (googletrans or google-cloud-translate) |
+| Embedding | OpenAI text-embedding-3-small |
+| Vector DB | Qdrant (local, open source) |
+| LLM | OpenAI GPT-4 |
+| Backend | Python 3.11+ |
+| Interface | CLI |
+| Queue | Deferred — manual trigger for PoC |
+
+---
+
+## Architecture: Data Pipeline
+
+```
+Video/Audio File
+      ↓
+faster-whisper (transcription)
+      ↓
+Google Translate API (Hindi → English)
+      ↓
+LLM Flagging (GPT-4) — flags unclear segments, does NOT alter
+      ↓
+[Quality Gate] confidence threshold check
+      ↓
+Semantic Chunking — sliding window with overlap (~paragraph sized)
+      ↓
+Metadata Tagging (GPT-4) — topics, trust score, source, session ID
+      ↓
+Embedding (text-embedding-3-small)
+      ↓
+[Quality Gate] semantic consistency vs AP Framework
+      ↓
+Qdrant Vector DB (local)
+```
+
+## Architecture: Query Pipeline
+
+```
+User Query (CLI)
+      ↓
+Translation Layer — maps user vocab → philosopher vocab
+      (AP Framework in system prompt)
+      (Intent classification: high confidence → translate,
+       low confidence → suggest related queries,
+       no match → redirect with query suggestions)
+      ↓
+Search Orchestrator
+      → Qdrant: semantic similarity search
+      → Rank by: trust score + semantic relevance + explanation clarity
+      → Assemble context window (lost-in-middle aware ordering)
+         - Beginning: AP Framework excerpts, highest trust chunks
+         - Middle: lower trust / supplementary content
+         - End: reviewed transcripts, concrete examples
+      ↓
+LLM Generation (GPT-4)
+      (system prompt: AP Framework + concept glossary + faithfulness instructions)
+      ↓
+CLI Output
+```
+
+---
+
+## Data Model: Chunk Metadata
+
+Each chunk stored in Qdrant should have the following metadata:
+
+```python
+{
+    "chunk_id": str,           # unique ID
+    "session_id": str,         # source recording ID
+    "source_type": str,        # "framework_doc" | "essay" | "reviewed_transcript" | "raw_transcript"
+    "trust_score": float,      # 1.0 = framework doc, 0.8 = essay, 0.6 = reviewed, 0.3 = raw
+    "language_original": str,  # "en" | "hi" | "mixed"
+    "timestamp_start": float,  # seconds into recording
+    "timestamp_end": float,
+    "topics": list[str],       # AP Framework concept tags
+    "explanation_clarity": float,  # LLM-scored 0-1
+    "text": str,               # chunk text (translated to English)
+    "text_original": str,      # original text before translation
+}
+```
+
+---
+
+## Trust Hierarchy (important for ranking and context assembly)
+
+1. **AP Framework document** — trust score 1.0
+2. **Books and essays** — trust score 0.8 (deferred ingestion)
+3. **Reviewed transcripts** — trust score 0.6
+4. **Unreviewed/raw transcripts** — trust score 0.3
+
+---
+
+## System Prompt Template (for LLM generation)
+
+```
+You are a knowledgeable assistant for the AP Framework — a contemporary
+expression of Advaita philosophy by the philosopher.
+
+CRITICAL DEFINITIONS — always use these, not mainstream meanings:
+- Ego: a felt assumption ("I am X"), an error, not an entity
+- Consciousness: the ego-object structure; dead duality. NOT pure awareness.
+- Suffering: ego's intrinsic condition
+- Liberation: not a state; unnameable
+- Mind: accumulated content of ego — memory, conditioning, tendencies
+- Objects: what ego attaches to for completion
+
+RULES:
+1. Base your response STRICTLY on the provided context chunks
+2. Do NOT use your general training knowledge about philosophy
+3. Do NOT add interpretations beyond what is in the context
+4. If the context is insufficient, say so explicitly
+5. Preserve the philosopher's precise vocabulary and framing
+6. Do not describe liberation as a state or destination
+
+CONTEXT:
+{context}
+
+USER QUESTION:
+{question}
+```
+
+---
+
+## Query Translation Layer: Examples
+
+Use these few-shot examples to guide the translation layer:
+
+| User Query | Translated Query |
+|---|---|
+| "Why do I feel incomplete?" | "ego seeking completion through objects, intrinsic suffering of incompleteness" |
+| "How do I find peace?" | "ego dissolution, liberation from ego's seeking, freedom from incompleteness" |
+| "Why do relationships cause pain?" | "ego attaching to objects for completion, suffering from attachment" |
+| "What is the mind?" | "mind as accumulated content of ego, conditioning, memory, tendencies" |
+| "What is true freedom?" | "liberation, not a state, dissolution of ego, choiceless action" |
+
+---
+
+## Project Structure (suggested)
+
+```
+philosopher-engine/
+├── CLAUDE.md                  # this file (gitignored — fill from CLAUDE.md.template)
+├── CLAUDE.md.template         # committed version with placeholders
+├── README.md
+├── requirements.txt
+├── .env                       # API keys (never commit)
+├── data/
+│   ├── raw/                   # original video/audio files
+│   ├── transcripts/           # raw transcripts from faster-whisper
+│   ├── translated/            # English translated transcripts
+│   ├── chunks/                # chunked and tagged data
+│   └── framework/             # AP Framework document and essays
+├── src/
+│   ├── ingestion/
+│   │   ├── transcribe.py      # faster-whisper transcription
+│   │   ├── translate.py       # Google Translate API
+│   │   └── flag.py            # LLM flagging of unclear segments
+│   ├── storage/
+│   │   ├── chunk.py           # semantic chunking
+│   │   ├── tag.py             # metadata tagging
+│   │   ├── embed.py           # OpenAI embeddings
+│   │   └── store.py           # Qdrant operations
+│   ├── query/
+│   │   ├── translate.py       # user query → philosopher vocab
+│   │   └── orchestrate.py     # retrieval and context assembly
+│   ├── generation/
+│   │   └── generate.py        # GPT-4 response generation
+│   └── cli.py                 # CLI entry point
+└── tests/
+    └── ...
+```
+
+---
+
+## Environment Variables Required
+
+```
+OPENAI_API_KEY=
+GOOGLE_TRANSLATE_API_KEY=
+QDRANT_HOST=localhost
+QDRANT_PORT=6333
+```
+
+---
+
+## Key Design Decisions & Rationale
+
+- **faster-whisper over cloud transcription** — cost at 500+ hours scale, local control
+- **Translation before embedding** — simpler pipeline for PoC; known limitation: philosophical nuance may be lost for Hindi content. Upgrade path: LLM-based translation with concept glossary.
+- **Qdrant local** — zero cost for PoC, easy to migrate to cloud later
+- **Sliding window chunking with overlap** — preserves continuity of philosophical thought across chunk boundaries
+- **Trust hierarchy in metadata** — ensures retrieval ranking favors highest quality sources
+- **AP Framework in system prompt** — anchors LLM to philosopher's specific conceptual vocabulary
+- **Conservative LLM flagging** — LLM flags unclear transcript segments but never alters content, preserving philosophical precision
+- **Lost-in-middle aware context assembly** — highest trust content at beginning and end of context window
+
+---
+
+## Known Limitations (PoC)
+
+1. Translation API loses philosophical nuance for Hindi content
+2. No graph DB — cross-session concept relationships not tracked
+3. No internet enrichment — philosopher's ideas only
+4. No feedback loops — ranking does not improve over time
+5. No human review UI — flagged segments noted but not actioned
+6. Manual ingestion trigger — no automated pipeline for new recordings
+
+---
+
+## Next Steps After PoC
+
+1. Add human review UI for flagged transcript segments
+2. Add Neo4j graph DB for cross-session concept relationships
+3. Add internet search for supporting evidence
+4. Add LLM judge for response quality evaluation
+5. Add user feedback loop to improve ranking
+6. Ingest books and essays
+7. Replace translation API with LLM-based translation preserving key terms
+8. Add query federation (multiple parallel query variants)
+9. Automate ingestion pipeline with event queue (Kafka/SQS)
