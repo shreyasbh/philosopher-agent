@@ -7,7 +7,7 @@
 ## Overview
 A RAG-based knowledge engine built around the recorded body of work of a philosopher. The system ingests video/zoom recordings, transcribes them, stores them in a vector database, and generates responses grounded in the philosopher's ideas in response to user queries.
 
-The philosopher's framework is called the **AP Framework** — a contemporary expression of Advaita rooted in ego inquiry. Key concepts have very specific meanings that differ from mainstream usage:
+The philosopher's framework is called the **the Framework** — a contemporary expression of Advaita rooted in ego inquiry. Key concepts have very specific meanings that differ from mainstream usage:
 - **Ego** — a felt assumption, "I am X"; an error, not an entity
 - **Consciousness** — the ego-object structure itself; "dead duality" (NOT pure awareness)
 - **Suffering** — ego's intrinsic condition, not an accident
@@ -29,12 +29,12 @@ Full framework reference: [internal document]
 - [ ] Translation Hindi → English via Google Translate API
 - [ ] LLM-based flagging of unclear segments (does NOT alter content)
 - [ ] Semantic chunking with sliding window overlap
-- [ ] Metadata tagging using AP Framework as reference
+- [ ] Metadata tagging using the Framework as reference
 - [ ] Embedding using OpenAI text-embedding-3-small
 - [ ] Storage in Qdrant vector DB (local)
 - [ ] Query translation layer (user vocab → philosopher vocab)
 - [ ] Search orchestrator (retrieve, rank, assemble context)
-- [ ] LLM generation using GPT-4 with AP Framework system prompt
+- [ ] LLM generation using GPT-4 with the Framework system prompt
 - [ ] CLI interface for user queries
 
 ### Explicitly Deferred (do NOT build yet)
@@ -84,7 +84,7 @@ Metadata Tagging (GPT-4) — topics, trust score, source, session ID
       ↓
 Embedding (text-embedding-3-small)
       ↓
-[Quality Gate] semantic consistency vs AP Framework
+[Quality Gate] semantic consistency vs the Framework
       ↓
 Qdrant Vector DB (local)
 ```
@@ -95,7 +95,7 @@ Qdrant Vector DB (local)
 User Query (CLI)
       ↓
 Translation Layer — maps user vocab → philosopher vocab
-      (AP Framework in system prompt)
+      (the Framework in system prompt)
       (Intent classification: high confidence → translate,
        low confidence → suggest related queries,
        no match → redirect with query suggestions)
@@ -104,12 +104,12 @@ Search Orchestrator
       → Qdrant: semantic similarity search
       → Rank by: trust score + semantic relevance + explanation clarity
       → Assemble context window (lost-in-middle aware ordering)
-         - Beginning: AP Framework excerpts, highest trust chunks
+         - Beginning: the Framework excerpts, highest trust chunks
          - Middle: lower trust / supplementary content
          - End: reviewed transcripts, concrete examples
       ↓
 LLM Generation (GPT-4)
-      (system prompt: AP Framework + concept glossary + faithfulness instructions)
+      (system prompt: the Framework + concept glossary + faithfulness instructions)
       ↓
 CLI Output
 ```
@@ -129,7 +129,7 @@ Each chunk stored in Qdrant should have the following metadata:
     "language_original": str,  # "en" | "hi" | "mixed"
     "timestamp_start": float,  # seconds into recording
     "timestamp_end": float,
-    "topics": list[str],       # AP Framework concept tags
+    "topics": list[str],       # the Framework concept tags
     "explanation_clarity": float,  # LLM-scored 0-1
     "text": str,               # chunk text (translated to English)
     "text_original": str,      # original text before translation
@@ -140,7 +140,7 @@ Each chunk stored in Qdrant should have the following metadata:
 
 ## Trust Hierarchy (important for ranking and context assembly)
 
-1. **AP Framework document** — trust score 1.0
+1. **the Framework document** — trust score 1.0
 2. **Books and essays** — trust score 0.8 (deferred ingestion)
 3. **Reviewed transcripts** — trust score 0.6
 4. **Unreviewed/raw transcripts** — trust score 0.3
@@ -150,7 +150,7 @@ Each chunk stored in Qdrant should have the following metadata:
 ## System Prompt Template (for LLM generation)
 
 ```
-You are a knowledgeable assistant for the AP Framework — a contemporary
+You are a knowledgeable assistant for the the Framework — a contemporary
 expression of Advaita philosophy by the philosopher.
 
 CRITICAL DEFINITIONS — always use these, not mainstream meanings:
@@ -206,7 +206,7 @@ philosopher-engine/
 │   ├── transcripts/           # raw transcripts from faster-whisper
 │   ├── translated/            # English translated transcripts
 │   ├── chunks/                # chunked and tagged data
-│   └── framework/             # AP Framework document and essays
+│   └── framework/             # the Framework document and essays
 ├── src/
 │   ├── ingestion/
 │   │   ├── transcribe.py      # faster-whisper transcription
@@ -247,7 +247,7 @@ QDRANT_PORT=6333
 - **Qdrant local** — zero cost for PoC, easy to migrate to cloud later
 - **Sliding window chunking with overlap** — preserves continuity of philosophical thought across chunk boundaries
 - **Trust hierarchy in metadata** — ensures retrieval ranking favors highest quality sources
-- **AP Framework in system prompt** — anchors LLM to philosopher's specific conceptual vocabulary
+- **the Framework in system prompt** — anchors LLM to philosopher's specific conceptual vocabulary
 - **Conservative LLM flagging** — LLM flags unclear transcript segments but never alters content, preserving philosophical precision
 - **Lost-in-middle aware context assembly** — highest trust content at beginning and end of context window
 
