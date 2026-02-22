@@ -1,7 +1,3 @@
-# TEMPLATE FILE — copy to CLAUDE.md and fill in real references before use
-# Replace [internal document] with the real framework URL
-# Replace "the philosopher" with the philosopher's name where appropriate
-
 # Philosopher Knowledge Engine — Project Context
 
 ## Overview
